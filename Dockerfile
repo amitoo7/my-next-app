@@ -1,35 +1,20 @@
-FROM node:18-alpine as base
+# Use a Node.js image for building
+FROM node:18 AS builder
+
+# Set the working directory
 WORKDIR /app
+
+# Copy package.json and lock files
 COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy all files and build the Next.js app
+COPY . .
+#RUN npm run build
+
+# Expose port and start the app
 EXPOSE 3000
+CMD ["npm", "run", "dev"]
 
-FROM base as builder
-WORKDIR /app
-COPY . .
-RUN npm run build
-RUN npm install -g next
-
-
-FROM base as production
-WORKDIR /app
-
-ENV NODE_ENV=production
-RUN npm ci 
- 
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-USER nextjs
-
-
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
-
-CMD npm start
-
-FROM base as dev
-ENV NODE_ENV=development
-RUN npm install 
-COPY . .
-CMD npm run dev
